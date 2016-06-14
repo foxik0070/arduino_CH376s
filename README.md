@@ -1,4 +1,4 @@
-# Sodaq_DS3231
+# CH376s
 
 This is an Arduino library for the serial USB CH376s
 
