@@ -4,6 +4,8 @@
 
 This is an Arduino library for the serial USB CH376s
 
+Aruino Mega 2560, Serial3
+
 
 
 http://img.dxcdn.com/productimages/sku_217605_1.jpg
