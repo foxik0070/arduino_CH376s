@@ -4,12 +4,6 @@
 USB_CH376s::USB_CH376s() {
 }
 
-void USB_CH376s::printCommandHeader(String header) {
-  Serial.println("//////////////////////");
-  Serial.println(header);
-  Serial.println("----------------------");
-}
-
 boolean USB_CH376s::checkConnection(byte value) {
   Serial3.write(0x57);
   Serial3.write(0xAB);

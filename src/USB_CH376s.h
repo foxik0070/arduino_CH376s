@@ -9,7 +9,6 @@ class USB_CH376s
     USB_CH376s();
     void SETUP();
     void loop();
-    void printCommandHeader(String);
     boolean checkConnection(byte);
     void set_USB_Mode (byte);
     void resetALL();
