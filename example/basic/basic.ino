@@ -1,5 +1,7 @@
 #include <USB_CH376s.h>
 
+USB_CH376s usb(Serial3, Serial);
+
 void setup() {
   Serial.begin(9600);
   Serial3.begin(9600);
