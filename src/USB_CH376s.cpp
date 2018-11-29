@@ -1,14 +1,16 @@
 #include "USB_CH376s.h"
 
 
-USB_CH376s::USB_CH376s() {
+USB_CH376s::USB_CH376s(Stream * usb, Stream * debug) {
+	m_USB = usb;
+	m_Debug = debug;
 }
 
 boolean USB_CH376s::checkConnection(byte value) {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x06);
-  Serial3.write(value);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x06);
+  m_USB->write(value);
   if (waitForResponse("checking connection"))
     if (getResponseFromUSB() == (255 - value))
       result = true;
@@ -17,35 +19,39 @@ boolean USB_CH376s::checkConnection(byte value) {
 }
 
 void USB_CH376s::set_USB_Mode (byte value) {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x15);
-  Serial3.write(value);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x15);
+  m_USB->write(value);
   delay(20);
-  if (Serial3.available()) {
-    byte USB_Byte = Serial3.read();
+  if (m_USB->available()) {
+    byte USB_Byte = m_USB->read();
     if (USB_Byte == 0x51) {
-      USB_Byte = Serial3.read();
+      USB_Byte = m_USB->read();
       if (USB_Byte == 0x15) {
       } else {
-        Serial.print("USB not connect. Error code:");
-        Serial.print(USB_Byte, HEX);
-        Serial.println("H");
+    	if (m_Debug) {
+			m_Debug->print("USB not connect. Error code:");
+			m_Debug->print(USB_Byte, HEX);
+			m_Debug->println("H");
+    	}
       }
 
     } else {
-      Serial.print("CH3765 error!   Error code:");
-      Serial.print(USB_Byte, HEX);
-      Serial.println("H");
+    	if (m_Debug) {
+		  m_Debug->print("CH3765 error!   Error code:");
+		  m_Debug->print(USB_Byte, HEX);
+		  m_Debug->println("H");
+    	}
     }
   }
   delay(20);
 }
 
 void USB_CH376s::resetALL() {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x05);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x05);
   delay(200);
 }
 
@@ -70,7 +76,9 @@ void USB_CH376s::writeFile(String fileName, String data) {
   if (fileCreate()) {
     fileWrite(data);
   } else {
-    Serial.println("File not create...");
+	  if (m_Debug) {
+		  m_Debug->println("File not created...");
+	  }
   }
   fileClose(0x01);
 }
@@ -88,47 +96,53 @@ void USB_CH376s::appendFile(String fileName, String data) {
 }
 
 void USB_CH376s::setFileName(String fileName) {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x2F);
-  Serial3.write(0x2F);
-  Serial3.print(fileName);
-  Serial3.write((byte)0x00);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x2F);
+  m_USB->write(0x2F);
+  m_USB->print(fileName);
+  m_USB->write((byte)0x00);
   delay(20);
 }
 
 void USB_CH376s::diskConnectionStatus() {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x30);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x30);
   if (waitForResponse("Connecting to USB disk")) {
     if (getResponseFromUSB() == 0x14) {
     } else {
-      Serial.print(">Connected to USB failed....");
+    	if (m_Debug) {
+    		m_Debug->print(">Connected to USB failed....");
+    	}
     }
   }
 }
 
 void USB_CH376s::USBdiskMount() {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x31);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x31);
   if (waitForResponse("mounting USB disk")) {
     if (getResponseFromUSB() == 0x14) {
     } else {
-      Serial.print(">USB mounting error...");
+    	if (m_Debug) {
+    		m_Debug->print(">USB mounting error...");
+    	}
     }
   }
 }
 
 void USB_CH376s::fileOpen() {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x32);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x32);
   if (waitForResponse("file Open")) {
     if (getResponseFromUSB() == 0x14) {
     } else {
-      Serial.print(">Open the file failed...");
+    	if (m_Debug) {
+    		m_Debug->print(">Open the file failed...");
+    	}
     }
   }
 }
@@ -136,11 +150,11 @@ void USB_CH376s::fileOpen() {
 boolean USB_CH376s::setByteRead(byte numBytes) {
   boolean bytesToRead = false;
   int timeCounter = 0;
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x3A);
-  Serial3.write((byte)numBytes);
-  Serial3.write((byte)0x00);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x3A);
+  m_USB->write((byte)numBytes);
+  m_USB->write((byte)0x00);
   if (waitForResponse("setByteRead")) {
     if (getResponseFromUSB() == 0x1D) {
       bytesToRead = true;
@@ -151,40 +165,42 @@ boolean USB_CH376s::setByteRead(byte numBytes) {
 
 int USB_CH376s::getFileSize() {
   int fileSize = 0;
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x0C);
-  Serial3.write(0x68);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x0C);
+  m_USB->write(0x68);
   delay(100);
-  if (Serial3.available()) {
-    fileSize = fileSize + Serial3.read();
+  if (m_USB->available()) {
+    fileSize = fileSize + m_USB->read();
   }
-  if (Serial3.available()) {
-    fileSize = fileSize + (Serial3.read() * 255);
+  if (m_USB->available()) {
+    fileSize = fileSize + (m_USB->read() * 255);
   }
-  if (Serial3.available()) {
-    fileSize = fileSize + (Serial3.read() * 255 * 255);
+  if (m_USB->available()) {
+    fileSize = fileSize + (m_USB->read() * 255 * 255);
   }
-  if (Serial3.available()) {
-    fileSize = fileSize + (Serial3.read() * 255 * 255 * 255);
+  if (m_USB->available()) {
+    fileSize = fileSize + (m_USB->read() * 255 * 255 * 255);
   }
   delay(10);
   return (fileSize);
 }
 
 void USB_CH376s::fileRead(String *data) {
-  Serial.print("READ: ");
+  if (m_Debug) {
+	  m_Debug->print("READ: ");
+  }
   byte firstByte = 0x00;
   byte numBytes = 0x40;
   int i = 0;
   while (setByteRead(numBytes)) {
-    Serial3.write(0x57);
-    Serial3.write(0xAB);
-    Serial3.write(0x27);
+    m_USB->write(0x57);
+    m_USB->write(0xAB);
+    m_USB->write(0x27);
     if (waitForResponse("reading data")) {
-      firstByte = Serial3.read();
-      while (Serial3.available()) {
-        data[i++] = Serial3.readString();
+      firstByte = m_USB->read();
+      while (m_USB->available()) {
+        data[i++] = m_USB->readString();
         delay(1);
       }
     }
@@ -195,42 +211,48 @@ void USB_CH376s::fileRead(String *data) {
 }
 
 void USB_CH376s::fileWrite(String data) {
-  Serial.print("WRITE: ");
+  if (m_Debug) {
+	m_Debug->print("WRITE: ");
+  }
   byte dataLength = (byte) data.length();
-  Serial.println(data);
+  if (m_Debug) {
+	m_Debug->println(data);
+  }
   delay(100);
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x3C);
-  Serial3.write((byte) dataLength);
-  Serial3.write((byte) 0x00);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x3C);
+  m_USB->write((byte) dataLength);
+  m_USB->write((byte) 0x00);
   if (waitForResponse("setting data Length")) {
     if (getResponseFromUSB() == 0x1E) {
-      Serial3.write(0x57);
-      Serial3.write(0xAB);
-      Serial3.write(0x2D);
-      Serial3.print(data);
-      if (waitForResponse("writing data to file")) {
+      m_USB->write(0x57);
+      m_USB->write(0xAB);
+      m_USB->write(0x2D);
+      m_USB->print(data);
+      waitForResponse("writing data to file");
+      if (m_Debug) {
+		  m_Debug->print("WRITE OK... (");
+		  m_Debug->print(m_USB->read(), HEX);
+		  m_Debug->print(",");
       }
-      Serial.print("WRITE OK... (");
-      Serial.print(Serial3.read(), HEX);
-      Serial.print(",");
-      Serial3.write(0x57);
-      Serial3.write(0xAB);
-      Serial3.write(0x3D);
-      if (waitForResponse("updating file size")) {
+      m_USB->write(0x57);
+      m_USB->write(0xAB);
+      m_USB->write(0x3D);
+      waitForResponse("updating file size");
+      if (m_Debug) {
+		  m_Debug->print(m_USB->read(), HEX);
+		  m_Debug->println(")");
       }
-      Serial.print(Serial3.read(), HEX);
-      Serial.println(")");
     }
   }
 }
 
 boolean USB_CH376s::continueRead() {
   boolean readAgain = false;
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x3B);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x3B);
   if (waitForResponse("continueRead")) {
     if (getResponseFromUSB() == 0x14) {
       readAgain = true;
@@ -241,9 +263,9 @@ boolean USB_CH376s::continueRead() {
 
 boolean USB_CH376s::fileCreate() {
   boolean createdFile = false;
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x34);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x34);
   if (waitForResponse("creating file")) {
     if (getResponseFromUSB() == 0x14) {
       createdFile = true;
@@ -255,30 +277,32 @@ boolean USB_CH376s::fileCreate() {
 void USB_CH376s::fileDelete(String fileName) {
   setFileName(fileName);
   delay(20);
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x35);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x35);
   if (waitForResponse("deleting file")) {
     if (getResponseFromUSB() == 0x14) {
-      Serial.println("Delete...");
+      if (m_Debug) {
+    	  m_Debug->println("Deleted...");
+      }
     }
   }
 }
 
 void USB_CH376s::filePointer(boolean fileBeginning) {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x39);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x39);
   if (fileBeginning) {
-    Serial3.write((byte)0x00);
-    Serial3.write((byte)0x00);
-    Serial3.write((byte)0x00);
-    Serial3.write((byte)0x00);
+    m_USB->write((byte)0x00);
+    m_USB->write((byte)0x00);
+    m_USB->write((byte)0x00);
+    m_USB->write((byte)0x00);
   } else {
-    Serial3.write((byte)0xFF);
-    Serial3.write((byte)0xFF);
-    Serial3.write((byte)0xFF);
-    Serial3.write((byte)0xFF);
+    m_USB->write((byte)0xFF);
+    m_USB->write((byte)0xFF);
+    m_USB->write((byte)0xFF);
+    m_USB->write((byte)0xFF);
   }
   if (waitForResponse("setting file pointer")) {
     if (getResponseFromUSB() == 0x14) {
@@ -287,16 +311,18 @@ void USB_CH376s::filePointer(boolean fileBeginning) {
 }
 
 void USB_CH376s::fileClose(byte closeCmd) {
-  Serial3.write(0x57);
-  Serial3.write(0xAB);
-  Serial3.write(0x36);
-  Serial3.write((byte)closeCmd);
+  m_USB->write(0x57);
+  m_USB->write(0xAB);
+  m_USB->write(0x36);
+  m_USB->write((byte)closeCmd);
   if (waitForResponse("closing file")) {
     byte resp = getResponseFromUSB();
     if (resp == 0x14) {
     } else {
-      Serial.print(">Failed to close file. Error code:");
-      Serial.println(resp, HEX);
+		if (m_Debug) {
+			m_Debug->print(">Failed to close file. Error code:");
+			m_Debug->println(resp, HEX);
+		}
     }
   }
 }
@@ -304,12 +330,14 @@ void USB_CH376s::fileClose(byte closeCmd) {
 boolean USB_CH376s::waitForResponse(String errorMsg) {
   boolean bytesAvailable = true;
   int counter = 0;
-  while (!Serial3.available()) {   //wait for CH376S to verify command
+  while (!m_USB->available()) {   //wait for CH376S to verify command
     delay(1);
     counter++;
     if (counter > 2000) {
-      Serial.print("TimeOut waiting for response: Error while: ");
-      Serial.println(errorMsg);
+      if (m_Debug) {
+		  m_Debug->print("TimeOut waiting for response: Error while: ");
+		  m_Debug->println(errorMsg);
+      }
       bytesAvailable = false;
       break;
     }
@@ -320,12 +348,12 @@ boolean USB_CH376s::waitForResponse(String errorMsg) {
 
 byte USB_CH376s::getResponseFromUSB() {
   byte response = byte(0x00);
-  if (Serial3.available()) {
-    response = Serial3.read();
+  if (m_USB->available()) {
+    response = m_USB->read();
   }
   return (response);
 }
 
-USB_CH376s usb = USB_CH376s();
+
 
 

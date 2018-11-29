@@ -5,8 +5,11 @@
 
 class USB_CH376s
 {
+  private:
+	Stream * m_USB;
+	Stream * m_Debug = NULL;
   public:
-    USB_CH376s();
+    USB_CH376s(Stream * usb, Stream * debug);
     void SETUP();
     void loop();
     boolean checkConnection(byte);
@@ -33,7 +36,5 @@ class USB_CH376s
     byte getResponseFromUSB();
 
 };
-
-extern USB_CH376s usb;
 
 #endif
